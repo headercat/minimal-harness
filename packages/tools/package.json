@@ -1,7 +1,6 @@
 {
   "name": "@minimal-harness/tools",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,6 +10,18 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:headercat/minimal-harness.git"
+  },
+  "description": "Built-in tools (bash, question, subagent) for @minimal-harness/core",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
