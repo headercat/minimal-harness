@@ -1,5 +1,25 @@
 import type { Message } from './tool/types.js';
 
+export function filterByRole(messages: Message[], role: Message['role']): Message[] {
+  return messages.filter((m) => m.role === role);
+}
+
+export function getSystemMessages(messages: Message[]): Message[] {
+  return filterByRole(messages, 'system');
+}
+
+export function getUserMessages(messages: Message[]): Message[] {
+  return filterByRole(messages, 'user');
+}
+
+export function getAssistantMessages(messages: Message[]): Message[] {
+  return filterByRole(messages, 'assistant');
+}
+
+export function getToolMessages(messages: Message[]): Message[] {
+  return filterByRole(messages, 'tool');
+}
+
 export class MessageHistory {
   private messages: Message[] = [];
 
@@ -25,6 +45,26 @@ export class MessageHistory {
 
   getAll(): Message[] {
     return this.messages;
+  }
+
+  getByRole(role: Message['role']): Message[] {
+    return filterByRole(this.messages, role);
+  }
+
+  getSystem(): Message[] {
+    return this.getByRole('system');
+  }
+
+  getUser(): Message[] {
+    return this.getByRole('user');
+  }
+
+  getAssistant(): Message[] {
+    return this.getByRole('assistant');
+  }
+
+  getTool(): Message[] {
+    return this.getByRole('tool');
   }
 
   replaceAll(messages: Message[]): void {

@@ -1,9 +1,9 @@
 import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import type { Message } from '@minimal-harness/core';
+import { getSystemMessages } from '@minimal-harness/core';
 
 export function extractSystemMessage(messages: Message[]): string | undefined {
-  const sys = messages.find((m) => m.role === 'system');
-  return sys?.content;
+  return getSystemMessages(messages)[0]?.content;
 }
 
 export function toMessages(messages: Message[]): ModelMessage[] {

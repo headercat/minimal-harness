@@ -19,4 +19,11 @@ export type { MCPServerConfig } from './mcp/client.js';
 export { MCPManager } from './mcp/client.js';
 export type { PermissionChecker, PermissionCheckContext } from './permission/manager.js';
 export { PermissionManager } from './permission/manager.js';
-export { MessageHistory } from './message.js';
+export {
+  MessageHistory,
+  filterByRole,
+  getSystemMessages,
+  getUserMessages,
+  getAssistantMessages,
+  getToolMessages,
+} from './message.js';
