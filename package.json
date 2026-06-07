@@ -8,14 +8,20 @@
     "build": "npm run build -ws --if-present",
     "typecheck": "npm run typecheck -ws --if-present",
     "dev": "npm run dev -w @headercat/minimal-harness",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   },
   "devDependencies": {
-    "prettier": "^3.4",
-    "typescript": "^5.7",
     "@ai-sdk/openai-compatible": "^2.0.48",
     "ai": "^6.0.197",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.4",
     "tsx": "^4.19",
+    "typescript": "^5.7",
     "zod": "^4.4.3"
   }
 }
