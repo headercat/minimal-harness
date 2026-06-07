@@ -1,11 +1,33 @@
-export class MessageHistory {
-  private messages: Record<string, unknown>[] = [];
+import type { Message } from './tool/types.js';
 
-  add(msg: Record<string, unknown>): void {
+export class MessageHistory {
+  private messages: Message[] = [];
+
+  add(msg: Message): void {
     this.messages.push(msg);
   }
 
-  getAll(): Record<string, unknown>[] {
+  addUser(content: string): void {
+    this.add({ role: 'user', content });
+  }
+
+  addSystem(content: string): void {
+    this.add({ role: 'system', content });
+  }
+
+  addAssistant(content?: string, tool_calls?: Message['tool_calls']): void {
+    this.add({ role: 'assistant', content, tool_calls });
+  }
+
+  addToolResult(tool_call_id: string, content: string): void {
+    this.add({ role: 'tool', tool_call_id, content });
+  }
+
+  getAll(): Message[] {
     return this.messages;
+  }
+
+  clear(): void {
+    this.messages = [];
   }
 }

@@ -1,4 +1,4 @@
-import type { Tool } from './types.js';
+import type { Tool, ToolContext } from './types.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
@@ -29,11 +29,11 @@ export class ToolRegistry {
     }));
   }
 
-  async execute(name: string, params: Record<string, unknown>, context: Record<string, unknown>) {
+  async execute(name: string, params: Record<string, unknown>, context: ToolContext) {
     const tool = this.get(name);
     if (!tool) {
       throw new Error(`Unknown tool: ${name}`);
     }
-    return tool.handler(params, context as never);
+    return tool.handler(params, context);
   }
 }

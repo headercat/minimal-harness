@@ -1,7 +1,7 @@
 export type PermissionChecker = (
   name: string,
   params: Record<string, unknown>,
-  context: Record<string, unknown>,
+  context: unknown,
 ) => void | Promise<void>;
 
 export class PermissionManager {
@@ -14,7 +14,7 @@ export class PermissionManager {
   async check(
     name: string,
     params: Record<string, unknown>,
-    context: Record<string, unknown>,
+    context: unknown,
   ): Promise<void> {
     await this.checker?.(name, params, context);
   }

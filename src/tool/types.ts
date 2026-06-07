@@ -5,8 +5,8 @@ export type ToolHandler = (
 
 export interface ToolContext {
   ask: (question: string) => Promise<string>;
-  messages: Record<string, unknown>[];
-  harness: Record<string, unknown>;
+  messages: Message[];
+  harness: unknown;
 }
 
 export interface ToolDefinition {
@@ -20,4 +20,23 @@ export interface Tool {
   description: string;
   parameters: Record<string, unknown>;
   handler: ToolHandler;
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface LLMResponse {
+  content?: string;
+  tool_calls?: ToolCall[];
+}
+
+export interface Message {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content?: string;
+  tool_call_id?: string;
+  tool_calls?: ToolCall[];
+  name?: string;
 }
