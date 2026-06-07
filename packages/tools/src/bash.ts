@@ -1,21 +1,18 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { Tool } from '../types.js';
+import { z } from 'zod';
+import type { Tool } from '@headercat/minimal-harness';
 
 const execFileAsync = promisify(execFile);
 
 export const bashTool: Tool = {
   name: 'bash',
   description: 'Execute a shell command and return the result',
-  parameters: {
-    type: 'object',
-    properties: {
-      command: { type: 'string', description: 'The shell command to execute' },
-      workdir: { type: 'string', description: 'Working directory (optional)' },
-      timeout: { type: 'number', description: 'Timeout in milliseconds (optional)' },
-    },
-    required: ['command'],
-  },
+  inputSchema: z.object({
+    command: z.string().describe('The shell command to execute'),
+    workdir: z.string().optional().describe('Working directory (optional)'),
+    timeout: z.number().optional().describe('Timeout in milliseconds (optional)'),
+  }),
   handler: async (params) => {
     const { command, workdir, timeout } = params as {
       command: string;
@@ -34,7 +31,7 @@ export const bashTool: Tool = {
       const error = err as NodeJS.ErrnoException & {
         stdout?: string;
         stderr?: string;
-        code?: number;
+        code?: string | number;
       };
       return {
         stdout: error.stdout ?? '',

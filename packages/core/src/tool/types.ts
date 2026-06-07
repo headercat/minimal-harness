@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 export type ToolHandler = (
   params: Record<string, unknown>,
   context: ToolContext,
@@ -18,14 +20,32 @@ export interface ToolDefinition {
 export interface Tool {
   name: string;
   description: string;
-  parameters: Record<string, unknown>;
+  inputSchema: z.ZodType;
+  parameters?: Record<string, unknown>;
   handler: ToolHandler;
+}
+
+export function toToolDescriptor(t: Tool) {
+  return { description: t.description, inputSchema: t.inputSchema };
 }
 
 export interface ToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+}
+
+export class ToolSchemaValidationError extends Error {
+  constructor(
+    public readonly toolName: string,
+    issues: z.ZodIssue[],
+  ) {
+    const lines = issues.map(
+      (i) => `- '${i.path.join('.')}': ${i.message}`,
+    );
+    super(`Tool '${toolName}' received invalid arguments:\n${lines.join('\n')}`);
+    this.name = 'ToolSchemaValidationError';
+  }
 }
 
 export interface LLMResponse {

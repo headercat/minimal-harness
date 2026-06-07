@@ -1,4 +1,5 @@
 import type { Tool, ToolContext } from './types.js';
+import { ToolSchemaValidationError } from './types.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
@@ -25,7 +26,7 @@ export class ToolRegistry {
     return this.getAll().map((t) => ({
       name: t.name,
       description: t.description,
-      parameters: t.parameters,
+      parameters: (t.inputSchema?.toJSONSchema() ?? t.parameters) as Record<string, unknown>,
     }));
   }
 
@@ -34,6 +35,12 @@ export class ToolRegistry {
     if (!tool) {
       throw new Error(`Unknown tool: ${name}`);
     }
+
+    const parsed = tool.inputSchema.safeParse(params);
+    if (!parsed.success) {
+      throw new ToolSchemaValidationError(name, parsed.error.issues);
+    }
+
     return tool.handler(params, context);
   }
 }

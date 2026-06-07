@@ -13,8 +13,8 @@ export type {
   LLMResponse,
   Message,
 } from './tool/types.js';
+export { toToolDescriptor } from './tool/types.js';
 export { ToolRegistry } from './tool/registry.js';
-export { bashTool, questionTool, subagentTool } from './tool/builtin/index.js';
 export type { Skill } from './skill/types.js';
 export type { SkillStrategy, SkillInjectorConfig } from './skill/injector.js';
 export { SkillInjector } from './skill/injector.js';

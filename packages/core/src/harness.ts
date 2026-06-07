@@ -1,9 +1,10 @@
 import type {
   Tool,
   LLMResponse,
-  ToolDefinition,
   Message,
 } from './tool/types.js';
+import { ToolSchemaValidationError } from './tool/types.js';
+import { z } from 'zod';
 import { ToolRegistry } from './tool/registry.js';
 import { SkillInjector, type SkillInjectorConfig } from './skill/injector.js';
 import { MCPManager, type MCPServerConfig } from './mcp/client.js';
@@ -14,7 +15,7 @@ export interface HarnessConfig {
   systemPrompt?: string;
   llm: (
     messages: Message[],
-    toolDefs: ToolDefinition[],
+    tools: Tool[],
   ) => Promise<LLMResponse>;
   tools?: Tool[];
   skills?: SkillInjectorConfig;
@@ -83,6 +84,7 @@ export class Harness {
         this.toolRegistry.register({
           name,
           description: t.description,
+          inputSchema: z.object({}),
           parameters: t.parameters,
           handler: async (params) => {
             const slashIdx = name.indexOf('/');
@@ -101,7 +103,7 @@ export class Harness {
     history.addUser(input);
 
     for (let i = 0; i < maxIter; i++) {
-      const tools = this.toolRegistry.getDefinitions();
+      const tools = this.toolRegistry.getAll();
       const messages = history.getAll();
 
       const response = await this.config.llm(messages, tools);
@@ -145,8 +147,12 @@ export class Harness {
             typeof result === 'string' ? result : JSON.stringify(result),
           );
         } catch (err) {
-          const reason = err instanceof Error ? err.message : 'Unknown error';
-          history.addToolResult(tc.id, `[Error] ${reason}`);
+          if (err instanceof ToolSchemaValidationError) {
+            history.addToolResult(tc.id, `[Invalid arguments]\n${err.message}`);
+          } else {
+            const reason = err instanceof Error ? err.message : 'Unknown error';
+            history.addToolResult(tc.id, `[Error] ${reason}`);
+          }
         }
       }
     }

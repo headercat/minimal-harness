@@ -1,26 +1,19 @@
 {
   "name": "minimal-harness",
-  "version": "0.0.0",
   "private": true,
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
+  "workspaces": ["packages/*"],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
+    "build": "npm run build -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "dev": "npm run dev -w @headercat/minimal-harness",
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "prettier": "^3.4",
     "typescript": "^5.7",
+    "@ai-sdk/openai-compatible": "^2.0.48",
+    "ai": "^6.0.197",
     "tsx": "^4.19",
-    "@types/node": "^22",
-    "prettier": "^3.4"
+    "zod": "^4.4.3"
   }
 }
