@@ -6,7 +6,7 @@
     "examples"
   ],
   "scripts": {
-    "build": "npm run build -ws --if-present",
+    "build": "npm run build -w @minimal-harness/core && npm run build -ws --if-present",
     "typecheck": "npm run build -w @minimal-harness/core && npm run typecheck -ws --if-present",
     "dev": "npm run dev -w @minimal-harness/core",
     "format": "prettier --write .",
