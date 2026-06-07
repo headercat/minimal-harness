@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Tool } from '@headercat/minimal-harness';
+import type { Tool } from '@minimal-harness/core';
 
 export const questionTool: Tool = {
   name: 'question',

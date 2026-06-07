@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npm run build -ws --if-present",
     "typecheck": "npm run typecheck -ws --if-present",
-    "dev": "npm run dev -w @headercat/minimal-harness",
+    "dev": "npm run dev -w @minimal-harness/core",
     "format": "prettier --write .",
     "prepare": "husky"
   },

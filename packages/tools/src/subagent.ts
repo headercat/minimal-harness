@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Tool } from '@headercat/minimal-harness';
+import type { Tool } from '@minimal-harness/core';
 
 export const subagentTool: Tool = {
   name: 'subagent',
@@ -15,7 +15,7 @@ export const subagentTool: Tool = {
       maxIterations?: number;
     };
 
-    const { Harness } = await import('@headercat/minimal-harness');
+    const { Harness } = await import('@minimal-harness/core');
 
     type HarnessConfig = ConstructorParameters<typeof Harness>[0];
     const parentConfig = (context.harness as { config: HarnessConfig }).config;

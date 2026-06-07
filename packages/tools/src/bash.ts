@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import type { Tool } from '@headercat/minimal-harness';
+import type { Tool } from '@minimal-harness/core';
 
 const execFileAsync = promisify(execFile);
 

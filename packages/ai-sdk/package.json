@@ -1,5 +1,5 @@
 {
-  "name": "@headercat/minimal-harness-ai-sdk",
+  "name": "@minimal-harness/ai-sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@headercat/minimal-harness": "*",
+    "@minimal-harness/core": "*",
     "ai": "^6.0.197",
     "zod": "^4.4.3"
   },

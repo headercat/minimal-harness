@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import type { Tool } from '@headercat/minimal-harness';
+import type { Tool } from '@minimal-harness/core';
 
 export function toToolDef(t: Tool) {
   return { description: t.description, inputSchema: t.inputSchema };

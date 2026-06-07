@@ -1,5 +1,5 @@
 import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import type { Message } from '@headercat/minimal-harness';
+import type { Message } from '@minimal-harness/core';
 
 export function toMessages(messages: Message[]): ModelMessage[] {
   const toolNameMap = new Map<string, string>();
