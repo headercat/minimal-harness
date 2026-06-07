@@ -9,7 +9,11 @@ import { MessageHistory } from './message.js';
 
 export interface HarnessConfig {
   systemPrompt?: string;
-  llm: (messages: Message[], tools: Tool[]) => Promise<LLMResponse>;
+  llm: (
+    messages: Message[],
+    tools: Tool[],
+    options?: { onStream?: (chunk: string) => void },
+  ) => Promise<LLMResponse>;
   tools?: Tool[];
   skills?: SkillInjectorConfig;
   mcp?: MCPServerConfig[];
@@ -23,8 +27,8 @@ export interface HarnessResult {
 }
 
 export interface HarnessContext {
-  ask?: (question: string) => Promise<string>;
   onToolCall?: (call: { name: string; params: Record<string, unknown> }) => void;
+  onStream?: (chunk: string) => void;
 }
 
 export class Harness {
@@ -55,12 +59,8 @@ export class Harness {
   }
 
   async run(input: string, context?: HarnessContext): Promise<HarnessResult> {
-    const ask =
-      context?.ask ??
-      (async () => {
-        throw new Error('No ask handler configured');
-      });
     const onToolCall = context?.onToolCall;
+    const onStream = context?.onStream;
     const maxIter = this.config.maxIterations ?? 25;
     const history = new MessageHistory();
 
@@ -103,7 +103,9 @@ export class Harness {
       const tools = this.toolRegistry.getAll();
       const messages = history.getAll();
 
-      const response = await this.config.llm(messages, tools);
+      const response = await this.config.llm(messages, tools, {
+        onStream: onStream,
+      });
 
       const content = typeof response.content === 'string' ? response.content : undefined;
       const rawCalls = response.tool_calls;
@@ -135,7 +137,6 @@ export class Harness {
 
         try {
           const result = await this.toolRegistry.execute(tc.name, tc.arguments, {
-            ask,
             messages: history.getAll(),
             harness: this,
           });

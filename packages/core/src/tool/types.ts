@@ -6,7 +6,6 @@ export type ToolHandler = (
 ) => unknown | Promise<unknown>;
 
 export interface ToolContext {
-  ask: (question: string) => Promise<string>;
   messages: Message[];
   harness: unknown;
 }
@@ -23,10 +22,6 @@ export interface Tool {
   inputSchema: z.ZodType;
   parameters?: Record<string, unknown>;
   handler: ToolHandler;
-}
-
-export function toToolDescriptor(t: Tool) {
-  return { description: t.description, inputSchema: t.inputSchema };
 }
 
 export interface ToolCall {

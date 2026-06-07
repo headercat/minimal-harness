@@ -1,31 +1,33 @@
 import { z } from 'zod';
 import type { Tool } from '@minimal-harness/core';
 
-export const subagentTool: Tool = {
-  name: 'subagent',
-  description:
-    'Execute a sub-agent with a given prompt. The sub-agent starts fresh with no conversation history.',
-  inputSchema: z.object({
-    prompt: z.string().describe('Task for the sub-agent to execute'),
-    maxIterations: z.number().optional().describe('Max iterations for the sub-agent (optional)'),
-  }),
-  handler: async (params, context) => {
-    const { prompt, maxIterations } = params as {
-      prompt: string;
-      maxIterations?: number;
-    };
+export function subagentTool(): Tool {
+  return {
+    name: 'subagent',
+    description:
+      'Execute a sub-agent with a given prompt. The sub-agent starts fresh with no conversation history.',
+    inputSchema: z.object({
+      prompt: z.string().describe('Task for the sub-agent to execute'),
+      maxIterations: z.number().optional().describe('Max iterations for the sub-agent (optional)'),
+    }),
+    handler: async (params, context) => {
+      const { prompt, maxIterations } = params as {
+        prompt: string;
+        maxIterations?: number;
+      };
 
-    const { Harness } = await import('@minimal-harness/core');
+      const { Harness } = await import('@minimal-harness/core');
 
-    type HarnessConfig = ConstructorParameters<typeof Harness>[0];
-    const parentConfig = (context.harness as { config: HarnessConfig }).config;
+      type HarnessConfig = ConstructorParameters<typeof Harness>[0];
+      const parentConfig = (context.harness as { config: HarnessConfig }).config;
 
-    const sub = new Harness({
-      ...parentConfig,
-      maxIterations: maxIterations ?? parentConfig.maxIterations ?? 25,
-    });
+      const sub = new Harness({
+        ...parentConfig,
+        maxIterations: maxIterations ?? parentConfig.maxIterations ?? 25,
+      });
 
-    const result = await sub.run(prompt, { ask: context.ask });
-    return { output: result.output };
-  },
-};
+      const result = await sub.run(prompt);
+      return { output: result.output };
+    },
+  };
+}
