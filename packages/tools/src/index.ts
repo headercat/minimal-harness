@@ -1,3 +1,10 @@
 export { bashTool } from './bash.js';
 export { questionTool } from './question.js';
 export { subagentTool } from './subagent.js';
+export { webFetchTool } from './webFetch.js';
+export { readTool } from './read.js';
+export { writeTool } from './write.js';
+export { editTool } from './edit.js';
+export { globTool } from './glob.js';
+export { grepTool } from './grep.js';
+export { readdirTool } from './readdir.js';

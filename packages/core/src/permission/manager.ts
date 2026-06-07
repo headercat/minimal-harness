@@ -1,8 +1,16 @@
+import type { Message } from '../tool/types.js';
+
 export type PermissionChecker = (
   name: string,
   params: Record<string, unknown>,
   context: unknown,
 ) => void | Promise<void>;
+
+export interface PermissionCheckContext {
+  messages: Message[];
+  harness: unknown;
+  confirm?: (message: string) => Promise<boolean>;
+}
 
 export class PermissionManager {
   private checker?: PermissionChecker;

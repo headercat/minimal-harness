@@ -29,6 +29,8 @@ export interface HarnessResult {
 export interface HarnessContext {
   onToolCall?: (call: { name: string; params: Record<string, unknown> }) => void;
   onStream?: (chunk: string) => void;
+  onToolResult?: (call: { name: string }) => void;
+  confirm?: (message: string) => Promise<boolean>;
 }
 
 export class Harness {
@@ -61,6 +63,8 @@ export class Harness {
   async run(input: string, context?: HarnessContext): Promise<HarnessResult> {
     const onToolCall = context?.onToolCall;
     const onStream = context?.onStream;
+    const onToolResult = context?.onToolResult;
+    const confirm = context?.confirm;
     const maxIter = this.config.maxIterations ?? 25;
     const history = new MessageHistory();
 
@@ -128,10 +132,12 @@ export class Harness {
           await this.permissionManager?.check(tc.name, tc.arguments, {
             messages: history.getAll(),
             harness: this,
+            confirm,
           });
         } catch (err) {
           const reason = err instanceof Error ? err.message : 'Permission denied';
           history.addToolResult(tc.id, `[Permission denied] ${reason}`);
+          onToolResult?.({ name: tc.name });
           continue;
         }
 
@@ -144,6 +150,7 @@ export class Harness {
             tc.id,
             typeof result === 'string' ? result : JSON.stringify(result),
           );
+          onToolResult?.({ name: tc.name });
         } catch (err) {
           if (err instanceof ToolSchemaValidationError) {
             history.addToolResult(tc.id, `[Invalid arguments]\n${err.message}`);
@@ -151,6 +158,7 @@ export class Harness {
             const reason = err instanceof Error ? err.message : 'Unknown error';
             history.addToolResult(tc.id, `[Error] ${reason}`);
           }
+          onToolResult?.({ name: tc.name });
         }
       }
     }

@@ -1,14 +1,21 @@
 import type { ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import type { Message } from '@minimal-harness/core';
 
+export function extractSystemMessage(messages: Message[]): string | undefined {
+  const sys = messages.find((m) => m.role === 'system');
+  return sys?.content;
+}
+
 export function toMessages(messages: Message[]): ModelMessage[] {
   const toolNameMap = new Map<string, string>();
 
-  return messages.map((m) => {
+  const result: ModelMessage[] = [];
+  for (const m of messages) {
+    if (m.role === 'system') continue;
     switch (m.role) {
-      case 'system':
       case 'user':
-        return { role: m.role, content: m.content ?? '' } as ModelMessage;
+        result.push({ role: m.role, content: m.content ?? '' } as ModelMessage);
+        break;
 
       case 'assistant': {
         if (m.tool_calls && m.tool_calls.length > 0) {
@@ -26,9 +33,11 @@ export function toMessages(messages: Message[]): ModelMessage[] {
               }),
             ),
           ];
-          return { role: 'assistant', content };
+          result.push({ role: 'assistant', content });
+        } else {
+          result.push({ role: 'assistant', content: m.content ?? '' });
         }
-        return { role: 'assistant', content: m.content ?? '' };
+        break;
       }
 
       case 'tool': {
@@ -40,8 +49,10 @@ export function toMessages(messages: Message[]): ModelMessage[] {
             output: { type: 'text', value: m.content ?? '' },
           },
         ];
-        return { role: 'tool', content };
+        result.push({ role: 'tool', content });
+        break;
       }
     }
-  });
+  }
+  return result;
 }

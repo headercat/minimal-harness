@@ -27,9 +27,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@grammyjs/runner": "^2.0.3",
     "@minimal-harness/core": "*",
-    "grammy": "^1.35.0",
-    "zod": "^4.4.3"
+    "grammy": "^1.35.0"
   },
   "devDependencies": {
     "@types/node": "^22"
