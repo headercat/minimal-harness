@@ -27,6 +27,10 @@ export class MessageHistory {
     return this.messages;
   }
 
+  replaceAll(messages: Message[]): void {
+    this.messages = messages;
+  }
+
   clear(): void {
     this.messages = [];
   }

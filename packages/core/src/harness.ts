@@ -7,6 +7,11 @@ import { MCPManager, type MCPServerConfig } from './mcp/client.js';
 import { PermissionManager, type PermissionChecker } from './permission/manager.js';
 import { MessageHistory } from './message.js';
 
+export type CompressStrategy = (
+  messages: Message[],
+  context: { harness: Harness },
+) => Message[] | Promise<Message[]>;
+
 export interface HarnessConfig {
   systemPrompt?: string;
   llm: (
@@ -19,6 +24,7 @@ export interface HarnessConfig {
   mcp?: MCPServerConfig[];
   permissions?: PermissionChecker;
   maxIterations?: number;
+  compress?: CompressStrategy;
 }
 
 export interface HarnessResult {
@@ -104,6 +110,11 @@ export class Harness {
     history.addUser(input);
 
     for (let i = 0; i < maxIter; i++) {
+      if (this.config.compress) {
+        const compressed = await this.config.compress(history.getAll(), { harness: this });
+        history.replaceAll(compressed);
+      }
+
       const tools = this.toolRegistry.getAll();
       const messages = history.getAll();
 
