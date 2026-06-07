@@ -40,9 +40,7 @@ export class ToolSchemaValidationError extends Error {
     public readonly toolName: string,
     issues: z.ZodIssue[],
   ) {
-    const lines = issues.map(
-      (i) => `- '${i.path.join('.')}': ${i.message}`,
-    );
+    const lines = issues.map((i) => `- '${i.path.join('.')}': ${i.message}`);
     super(`Tool '${toolName}' received invalid arguments:\n${lines.join('\n')}`);
     this.name = 'ToolSchemaValidationError';
   }

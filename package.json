@@ -1,7 +1,9 @@
 {
   "name": "minimal-harness",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "npm run build -ws --if-present",
     "typecheck": "npm run typecheck -ws --if-present",

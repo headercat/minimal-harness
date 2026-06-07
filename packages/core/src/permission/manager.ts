@@ -11,11 +11,7 @@ export class PermissionManager {
     this.checker = checker;
   }
 
-  async check(
-    name: string,
-    params: Record<string, unknown>,
-    context: unknown,
-  ): Promise<void> {
+  async check(name: string, params: Record<string, unknown>, context: unknown): Promise<void> {
     await this.checker?.(name, params, context);
   }
 }

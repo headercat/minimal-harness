@@ -1,9 +1,5 @@
 export { Harness } from './harness.js';
-export type {
-  HarnessConfig,
-  HarnessContext,
-  HarnessResult,
-} from './harness.js';
+export type { HarnessConfig, HarnessContext, HarnessResult } from './harness.js';
 export type {
   Tool,
   ToolDefinition,

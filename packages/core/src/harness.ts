@@ -1,8 +1,4 @@
-import type {
-  Tool,
-  LLMResponse,
-  Message,
-} from './tool/types.js';
+import type { Tool, LLMResponse, Message } from './tool/types.js';
 import { ToolSchemaValidationError } from './tool/types.js';
 import { z } from 'zod';
 import { ToolRegistry } from './tool/registry.js';
@@ -13,10 +9,7 @@ import { MessageHistory } from './message.js';
 
 export interface HarnessConfig {
   systemPrompt?: string;
-  llm: (
-    messages: Message[],
-    tools: Tool[],
-  ) => Promise<LLMResponse>;
+  llm: (messages: Message[], tools: Tool[]) => Promise<LLMResponse>;
   tools?: Tool[];
   skills?: SkillInjectorConfig;
   mcp?: MCPServerConfig[];
@@ -91,7 +84,11 @@ export class Harness {
             if (slashIdx === -1) throw new Error('Invalid MCP tool name');
             const serverLabel = name.slice(0, slashIdx);
             const toolName = name.slice(slashIdx + 1);
-            return this.mcpManager!.callTool(serverLabel, toolName, params as Record<string, unknown>);
+            return this.mcpManager!.callTool(
+              serverLabel,
+              toolName,
+              params as Record<string, unknown>,
+            );
           },
         });
       }

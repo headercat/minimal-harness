@@ -75,9 +75,7 @@ export class MCPManager {
         const id = this.nextId++;
         return new Promise<MCPResponse>((resolve) => {
           pending.set(id, resolve);
-          proc.stdin!.write(
-            JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n',
-          );
+          proc.stdin!.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
         });
       };
 

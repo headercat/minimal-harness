@@ -18,9 +18,7 @@ export const subagentTool: Tool = {
     const { Harness } = await import('@headercat/minimal-harness');
 
     type HarnessConfig = ConstructorParameters<typeof Harness>[0];
-    const parentConfig = (
-      context.harness as { config: HarnessConfig }
-    ).config;
+    const parentConfig = (context.harness as { config: HarnessConfig }).config;
 
     const sub = new Harness({
       ...parentConfig,
