@@ -3,8 +3,22 @@ import { run } from '@grammyjs/runner';
 import type { Harness, HarnessContext } from '@minimal-harness/core';
 import { setCurrentChatId } from './send-media.js';
 
+const MAX_HTML = 4000;
+
 function html(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function splitPlain(text: string, maxHtml: number): number {
+  if (text.length < 100) return text.length;
+  let split = Math.min(text.length, Math.floor(maxHtml * 0.85));
+  const nl = text.lastIndexOf('\n', split);
+  if (nl > 0) split = nl + 1;
+  else {
+    const sp = text.lastIndexOf(' ', split);
+    if (sp > 0) split = sp + 1;
+  }
+  return split;
 }
 
 function mdToHtml(s: string): string {
@@ -94,8 +108,9 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
       ctx.api.sendChatAction(ctx.chat.id, 'typing');
 
       const sent = await ctx.reply('\u2026');
-      let messageId = sent.message_id;
+      let streamMsgId = sent.message_id;
       let accumulated = '';
+      let committedLen = 0;
       let toolSuffix = '';
       let flushing = false;
 
@@ -103,28 +118,52 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
         ctx.api.sendChatAction(ctx.chat.id, 'typing').catch(() => {});
       }, config.typingInterval ?? 4000);
 
-      const displayText = () => mdToHtml(accumulated) + toolSuffix;
-
-      const flush = async () => {
+      async function flush() {
         if (flushing) return;
         flushing = true;
         try {
-          await ctx.api.editMessageText(ctx.chat.id, messageId, displayText(), {
-            parse_mode: 'HTML',
-          });
+          let pending = accumulated.slice(committedLen);
+          let html = mdToHtml(pending) + toolSuffix;
+
+          while (html.length > MAX_HTML && pending.length > 0) {
+            const split = splitPlain(pending, MAX_HTML);
+            const committed = pending.slice(0, split);
+            pending = pending.slice(split);
+            committedLen += split;
+
+            await ctx.api
+              .editMessageText(ctx.chat.id, streamMsgId, mdToHtml(committed), {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+
+            if (pending.length > 0) {
+              const newMsg = await ctx.api.sendMessage(ctx.chat.id, '\u2026');
+              streamMsgId = newMsg.message_id;
+            }
+            html = mdToHtml(pending) + toolSuffix;
+          }
+
+          if (pending.length > 0 || toolSuffix) {
+            await ctx.api
+              .editMessageText(ctx.chat.id, streamMsgId, html, {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+          }
         } catch {
-          // ignore Telegram API errors
+          // ignore
         } finally {
           flushing = false;
         }
-      };
+      }
 
       const flushInterval = setInterval(flush, 1000);
 
       const result = await harness.run(text, {
         ...override,
         onStream: (chunk: string) => {
-          const wasEmpty = accumulated.length === 0;
+          const wasEmpty = accumulated.length === committedLen;
           accumulated += chunk;
           if (wasEmpty) {
             setTimeout(flush, 200);
@@ -167,12 +206,51 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
       clearInterval(typingInterval);
       clearInterval(flushInterval);
 
-      if (result.output) {
-        await ctx.api
-          .editMessageText(ctx.chat.id, messageId, mdToHtml(result.output), {
-            parse_mode: 'HTML',
-          })
-          .catch(() => {});
+      const remaining = accumulated.slice(committedLen);
+      if (remaining.length > 0) {
+        let rest = remaining;
+        let first = true;
+        while (rest.length > 0) {
+          const split = splitPlain(rest, MAX_HTML);
+          const part = rest.slice(0, split);
+          rest = rest.slice(split);
+          if (first) {
+            await ctx.api
+              .editMessageText(ctx.chat.id, streamMsgId, mdToHtml(part), {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+            first = false;
+          } else {
+            await ctx.api
+              .sendMessage(ctx.chat.id, mdToHtml(part), {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+          }
+        }
+      } else if (accumulated.length === 0 && result.output) {
+        let rest = result.output;
+        let first = true;
+        while (rest.length > 0) {
+          const split = splitPlain(rest, MAX_HTML);
+          const part = rest.slice(0, split);
+          rest = rest.slice(split);
+          if (first) {
+            await ctx.api
+              .editMessageText(ctx.chat.id, streamMsgId, mdToHtml(part), {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+            first = false;
+          } else {
+            await ctx.api
+              .sendMessage(ctx.chat.id, mdToHtml(part), {
+                parse_mode: 'HTML',
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
