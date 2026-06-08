@@ -66,13 +66,17 @@ export class Harness {
     }
   }
 
-  async run(input: string, context?: HarnessContext): Promise<HarnessResult> {
+  async run(
+    input: string,
+    context?: HarnessContext,
+    existingMessages?: Message[],
+  ): Promise<HarnessResult> {
     const onToolCall = context?.onToolCall;
     const onStream = context?.onStream;
     const onToolResult = context?.onToolResult;
     const confirm = context?.confirm;
     const maxIter = this.config.maxIterations ?? 25;
-    const history = new MessageHistory();
+    const history = new MessageHistory(existingMessages?.filter((m) => m.role !== 'system'));
 
     let systemPrompt = this.config.systemPrompt ?? '';
     if (this.skillInjector) {
