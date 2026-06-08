@@ -33,6 +33,8 @@ export interface HarnessResult {
 }
 
 export interface HarnessContext {
+  userId?: string;
+  channelId?: string;
   onToolCall?: (call: { name: string; params: Record<string, unknown> }) => void;
   onStream?: (chunk: string) => void;
   onToolResult?: (call: { name: string }) => void;
@@ -75,6 +77,8 @@ export class Harness {
     const onStream = context?.onStream;
     const onToolResult = context?.onToolResult;
     const confirm = context?.confirm;
+    const userId = context?.userId;
+    const channelId = context?.channelId;
     const maxIter = this.config.maxIterations ?? 25;
     const history = new MessageHistory(existingMessages?.filter((m) => m.role !== 'system'));
 
@@ -148,6 +152,8 @@ export class Harness {
             messages: history.getAll(),
             harness: this,
             confirm,
+            userId,
+            channelId,
           });
         } catch (err) {
           const reason = err instanceof Error ? err.message : 'Permission denied';
@@ -160,6 +166,8 @@ export class Harness {
           const result = await this.toolRegistry.execute(tc.name, tc.arguments, {
             messages: history.getAll(),
             harness: this,
+            userId,
+            channelId,
           });
           history.addToolResult(
             tc.id,

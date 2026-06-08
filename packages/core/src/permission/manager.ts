@@ -10,6 +10,8 @@ export interface PermissionCheckContext {
   messages: Message[];
   harness: unknown;
   confirm?: (message: string) => Promise<boolean>;
+  userId?: string;
+  channelId?: string;
 }
 
 export class PermissionManager {

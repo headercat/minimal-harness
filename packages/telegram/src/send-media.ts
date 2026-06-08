@@ -1,12 +1,6 @@
 import { Bot, InputFile } from 'grammy';
 import { z } from 'zod';
-import type { Tool } from '@minimal-harness/core';
-
-let _currentChatId: string | undefined;
-
-export function setCurrentChatId(chatId: string) {
-  _currentChatId = chatId;
-}
+import type { Tool, ToolContext } from '@minimal-harness/core';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'avi', 'mov', 'mkv']);
@@ -42,7 +36,7 @@ export function createTelegramMediaTool(config: { botToken: string }): Tool {
         .describe('Media type. Auto-detected from file extension if not specified'),
       caption: z.string().optional().describe('Caption text for the media (max 1024 characters)'),
     }),
-    handler: async (params) => {
+    handler: async (params, context) => {
       const {
         chatId: explicitChatId,
         filePath,
@@ -55,11 +49,11 @@ export function createTelegramMediaTool(config: { botToken: string }): Tool {
         caption?: string;
       };
 
-      const targetChatId = explicitChatId ?? _currentChatId;
+      const targetChatId = explicitChatId ?? (context as ToolContext).channelId;
       if (!targetChatId) {
         throw new Error(
           'No chatId provided and no current chat context. ' +
-            'Send the request via Telegram, or provide chatId explicitly, or call setCurrentChatId() first.',
+            'Send the request via Telegram, or provide chatId explicitly.',
         );
       }
 
