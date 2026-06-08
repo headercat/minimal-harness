@@ -21,7 +21,11 @@ export function getToolMessages(messages: Message[]): Message[] {
 }
 
 export class MessageHistory {
-  private messages: Message[] = [];
+  private messages: Message[];
+
+  constructor(initialMessages?: Message[]) {
+    this.messages = initialMessages ? [...initialMessages] : [];
+  }
 
   add(msg: Message): void {
     this.messages.push(msg);
@@ -44,7 +48,7 @@ export class MessageHistory {
   }
 
   getAll(): Message[] {
-    return this.messages;
+    return [...this.messages];
   }
 
   getByRole(role: Message['role']): Message[] {

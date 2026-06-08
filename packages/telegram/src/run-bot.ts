@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { run } from '@grammyjs/runner';
-import type { Harness, HarnessContext } from '@minimal-harness/core';
+import type { Harness, HarnessContext, Message } from '@minimal-harness/core';
 import { setCurrentChatId } from './send-media.js';
 
 const MAX_HTML = 4000;
@@ -64,6 +64,8 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
     string,
     { resolve: (v: boolean) => void; userId: number; chatId: number; messageId: number }
   >();
+
+  const chatHistories = new Map<string, Message[]>();
 
   bot.on('callback_query:data', async (ctx) => {
     const data = ctx.callbackQuery.data;
@@ -160,51 +162,59 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
 
       const flushInterval = setInterval(flush, 1000);
 
-      const result = await harness.run(text, {
-        ...override,
-        onStream: (chunk: string) => {
-          const wasEmpty = accumulated.length === committedLen;
-          accumulated += chunk;
-          if (wasEmpty) {
-            setTimeout(flush, 200);
-          }
-        },
-        onToolCall: (call) => {
-          const detail = Object.values(call.params)
-            .filter((v) => typeof v === 'string' || typeof v === 'number')
-            .map((v) => String(v).split('\n')[0].slice(0, 80))
-            .join(', ');
-          toolSuffix = detail
-            ? `\n\n<pre><code class="language-${html(call.name)}">${html(detail)}</code></pre>`
-            : '';
-          flush();
-        },
-        onToolResult: () => {
-          toolSuffix = '';
-          flush();
-        },
-        confirm: async (message) => {
-          const uniqueId = `${ctx.chat.id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-          const msg = await ctx.reply(mdToHtml(message), {
-            parse_mode: 'HTML',
-            reply_markup: new InlineKeyboard()
-              .text('\u2705 Approve', `cf:y:${uniqueId}`)
-              .text('\u274c Deny', `cf:n:${uniqueId}`),
-          });
-
-          return new Promise<boolean>((resolve) => {
-            pendingConfirmations.set(uniqueId, {
-              resolve,
-              userId: ctx.message.from.id,
-              chatId: ctx.chat.id,
-              messageId: msg.message_id,
+      const chatId = ctx.chat.id.toString();
+      const prevMessages = chatHistories.get(chatId) ?? [];
+      const result = await harness.run(
+        text,
+        {
+          ...override,
+          onStream: (chunk: string) => {
+            const wasEmpty = accumulated.length === committedLen;
+            accumulated += chunk;
+            if (wasEmpty) {
+              setTimeout(flush, 200);
+            }
+          },
+          onToolCall: (call) => {
+            const detail = Object.values(call.params)
+              .filter((v) => typeof v === 'string' || typeof v === 'number')
+              .map((v) => String(v).split('\n')[0].slice(0, 80))
+              .join(', ');
+            toolSuffix = detail
+              ? `\n\n<pre><code class="language-${html(call.name)}">${html(detail)}</code></pre>`
+              : '';
+            flush();
+          },
+          onToolResult: () => {
+            toolSuffix = '';
+            flush();
+          },
+          confirm: async (message) => {
+            const uniqueId = `${ctx.chat.id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+            const msg = await ctx.reply(mdToHtml(message), {
+              parse_mode: 'HTML',
+              reply_markup: new InlineKeyboard()
+                .text('\u2705 Approve', `cf:y:${uniqueId}`)
+                .text('\u274c Deny', `cf:n:${uniqueId}`),
             });
-          });
+
+            return new Promise<boolean>((resolve) => {
+              pendingConfirmations.set(uniqueId, {
+                resolve,
+                userId: ctx.message.from.id,
+                chatId: ctx.chat.id,
+                messageId: msg.message_id,
+              });
+            });
+          },
         },
-      });
+        prevMessages,
+      );
 
       clearInterval(typingInterval);
       clearInterval(flushInterval);
+
+      chatHistories.set(chatId, result.messages);
 
       const remaining = accumulated.slice(committedLen);
       if (remaining.length > 0) {
