@@ -1,0 +1,13 @@
+{
+  "name": "telegram-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.48",
+    "@minimal-harness/ai-sdk": "*",
+    "@minimal-harness/core": "*",
+    "@minimal-harness/telegram": "*",
+    "@minimal-harness/tools": "*",
+    "ai": "^6.0.197"
+  }
+}
