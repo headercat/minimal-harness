@@ -8,6 +8,8 @@ export type ToolHandler = (
 export interface ToolContext {
   messages: Message[];
   harness: unknown;
+  userId?: string;
+  channelId?: string;
 }
 
 export interface ToolDefinition {

@@ -1,7 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { run } from '@grammyjs/runner';
 import type { Harness, HarnessContext, Message } from '@minimal-harness/core';
-import { setCurrentChatId } from './send-media.js';
 
 const MAX_HTML = 4000;
 
@@ -106,7 +105,6 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
     if (!text) return;
 
     try {
-      setCurrentChatId(ctx.chat.id.toString());
       ctx.api.sendChatAction(ctx.chat.id, 'typing');
 
       const sent = await ctx.reply('\u2026');
@@ -167,6 +165,8 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
       const result = await harness.run(
         text,
         {
+          userId: ctx.message.from.id.toString(),
+          channelId: ctx.chat.id.toString(),
           ...override,
           onStream: (chunk: string) => {
             const wasEmpty = accumulated.length === committedLen;
