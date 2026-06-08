@@ -1,6 +1,7 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { run } from '@grammyjs/runner';
 import type { Harness, HarnessContext } from '@minimal-harness/core';
+import { setCurrentChatId } from './send-media.js';
 
 function html(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -89,6 +90,7 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
     if (!text) return;
 
     try {
+      setCurrentChatId(ctx.chat.id.toString());
       ctx.api.sendChatAction(ctx.chat.id, 'typing');
 
       const sent = await ctx.reply('\u2026');
