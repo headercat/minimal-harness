@@ -101,8 +101,16 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
   });
 
   bot.on('message:text', async (ctx) => {
-    const text = ctx.message.text;
+    let text = ctx.message.text;
     if (!text) return;
+
+    const repliedTo = ctx.message.reply_to_message;
+    if (repliedTo) {
+      const repliedText = repliedTo.text ?? repliedTo.caption;
+      if (repliedText) {
+        text = `[Replying to: ${repliedText}]\n${text}`;
+      }
+    }
 
     try {
       ctx.api.sendChatAction(ctx.chat.id, 'typing');
