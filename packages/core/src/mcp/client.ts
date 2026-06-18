@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
+const MCP_TIMEOUT_MS = 30_000;
+
 export interface MCPServerConfig {
   transport: 'stdio' | 'sse';
   command?: string;
@@ -21,6 +23,12 @@ interface MCPResponse {
   error?: { code: number; message: string };
 }
 
+type PendingEntry = {
+  resolve: (res: MCPResponse) => void;
+  reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
 interface ServerConnection {
   process: ChildProcess;
   tools: MCPToolDefinition[];
@@ -32,12 +40,14 @@ export class MCPManager {
   private servers: ServerConnection[] = [];
   private configs: MCPServerConfig[];
   private nextId = 1;
+  private labelSeq = new Map<string, number>();
 
   constructor(configs: MCPServerConfig[]) {
     this.configs = configs;
   }
 
   async connect(): Promise<void> {
+    if (this.servers.length > 0) return;
     for (const cfg of this.configs) {
       if (cfg.transport === 'stdio') {
         const conn = await this.connectStdio(cfg);
@@ -52,29 +62,56 @@ export class MCPManager {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      proc.stderr!.on('data', (chunk: Buffer) => {
+        process.stderr.write(`[mcp stderr] ${chunk.toString().trim()}\n`);
+      });
+
       const rl = createInterface({ input: proc.stdout! });
-      const pending = new Map<number, (res: MCPResponse) => void>();
+      const pending = new Map<number, PendingEntry>();
+      let closed = false;
+
+      const failAllPending = (reason: string) => {
+        closed = true;
+        for (const [id, entry] of pending) {
+          clearTimeout(entry.timer);
+          entry.reject(new Error(reason));
+        }
+        pending.clear();
+      };
+
+      proc.on('error', reject);
+      proc.on('exit', (code) => {
+        failAllPending(`MCP process exited with code ${code}`);
+      });
 
       rl.on('line', (line) => {
         try {
           const parsed = JSON.parse(line) as MCPResponse;
-          const resolve = pending.get(parsed.id);
-          if (resolve) {
+          const entry = pending.get(parsed.id);
+          if (entry) {
+            clearTimeout(entry.timer);
             pending.delete(parsed.id);
-            resolve(parsed);
+            entry.resolve(parsed);
           }
         } catch {
-          /* skip malformed lines */
+          process.stderr.write(`[mcp] skip malformed: ${line.slice(0, 200)}\n`);
         }
       });
 
-      proc.on('error', reject);
+      const baseLabel = cfg.command ?? 'unknown';
+      const seq = (this.labelSeq.get(baseLabel) ?? 0) + 1;
+      this.labelSeq.set(baseLabel, seq);
+      const label = seq > 1 ? `${baseLabel}_${seq}` : baseLabel;
 
-      const label = cfg.command ?? 'unknown';
       const send = (method: string, params?: Record<string, unknown>) => {
+        if (closed) return Promise.reject(new Error('MCP server connection closed'));
         const id = this.nextId++;
-        return new Promise<MCPResponse>((resolve) => {
-          pending.set(id, resolve);
+        return new Promise<MCPResponse>((resolve, rejectPromise) => {
+          const timer = setTimeout(() => {
+            pending.delete(id);
+            rejectPromise(new Error(`MCP request timed out after ${MCP_TIMEOUT_MS}ms: ${method}`));
+          }, MCP_TIMEOUT_MS);
+          pending.set(id, { resolve, reject: rejectPromise, timer });
           proc.stdin!.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
         });
       };

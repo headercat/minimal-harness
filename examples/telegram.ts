@@ -65,14 +65,39 @@ const harness = new Harness({
     const totalLen = messages.reduce((s, m) => s + (m.content?.length ?? 0), 0);
     if (totalLen < 40_000) return messages;
 
-    const res = await harness.config.llm(
-      [{ role: 'system', content: 'Summarize the following conversation concisely.' }, ...messages],
+    const KEEP_RECENT = 20;
+    const systemMsgs = getSystemMessages(messages);
+    const nonSystem = messages.slice(systemMsgs.length);
+
+    if (nonSystem.length <= KEEP_RECENT + 5) return messages;
+
+    const recent = nonSystem.slice(-KEEP_RECENT);
+    const middle = nonSystem.slice(0, -KEEP_RECENT);
+
+    const summaryResult = await harness.config.llm(
+      [
+        {
+          role: 'system',
+          content:
+            'Summarize the following conversation excerpts concisely. ' +
+            'Preserve key decisions, errors, file paths, and facts. Omit greetings and filler.',
+        },
+        ...middle,
+      ],
       [],
     );
 
+    const summary = summaryResult.content ?? '(summary unavailable)';
     return [
-      ...getSystemMessages(messages),
-      { role: 'user', content: `[Previous conversation summary]\n${res.content}` },
+      ...systemMsgs,
+      {
+        role: 'user',
+        content:
+          `[Earlier conversation summary]\n` +
+          `Key points: ${summary}\n\n` +
+          `The messages below continue from this point.`,
+      },
+      ...recent,
     ];
   },
   permissions: async (name, params, context) => {
