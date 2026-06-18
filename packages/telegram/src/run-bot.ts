@@ -409,7 +409,7 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
           chatQueues.delete(chatQueues.keys().next().value!);
         }
       }, 15_000);
-      const handle = run(bot, { runner: { silent: true } });
+      const handle = run(bot);
       runnerHandle = handle;
       handle.task()?.catch(async () => {
         runnerHandle = undefined;
