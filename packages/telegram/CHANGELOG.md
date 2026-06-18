@@ -1,5 +1,14 @@
 # @minimal-harness/telegram
 
+## 0.2.1
+
+### Patch Changes
+
+- e565832: fix(core): add timeouts, retry with backoff, MCP crash handling, and JSON parse safety
+  fix(telegram): fix concurrent history overwrite, flush race, timer leak, and group chat context mixing
+- Updated dependencies [e565832]
+  - @minimal-harness/core@0.1.1
+
 ## 0.2.0
 
 ### Minor Changes
