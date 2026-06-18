@@ -1,5 +1,11 @@
 # @minimal-harness/telegram
 
+## 0.2.3
+
+### Patch Changes
+
+- 415bb94: fix(telegram): remove custom client.fetch that broke AbortSignal compatibility with native fetch
+
 ## 0.2.2
 
 ### Patch Changes
