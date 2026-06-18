@@ -1,5 +1,11 @@
 # @minimal-harness/telegram
 
+## 0.2.2
+
+### Patch Changes
+
+- 171de4a: fix(telegram): remove silent option from runner to surface errors
+
 ## 0.2.1
 
 ### Patch Changes
