@@ -60,29 +60,7 @@ export interface TelegramBotInstance {
 export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstance {
   const { botToken, harness, override } = config;
 
-  const sanitizingFetch: typeof globalThis.fetch = async (url, opts) => {
-    try {
-      return await fetch(url, opts);
-    } catch (err) {
-      if (err instanceof Error) {
-        err.message = err.message.replaceAll(botToken, '***');
-        if ('error' in err && err.error instanceof Error) {
-          err.error.message = err.error.message.replaceAll(botToken, '***');
-        }
-      }
-      throw err;
-    }
-  };
-
-  const bot = new Bot(botToken, {
-    client: {
-      fetch: sanitizingFetch as any,
-    },
-  });
-
-  bot.catch((err) => {
-    console.error('Bot middleware error:', err.message);
-  });
+  const bot = new Bot(botToken);
 
   const pendingConfirmations = new Map<
     string,
