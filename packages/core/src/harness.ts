@@ -25,6 +25,10 @@ export interface HarnessConfig {
   permissions?: PermissionChecker;
   maxIterations?: number;
   compress?: CompressStrategy;
+  llmTimeoutMs?: number;
+  toolTimeoutMs?: number;
+  llmRetryMax?: number;
+  toolRetryMax?: number;
 }
 
 export interface HarnessResult {
@@ -39,6 +43,75 @@ export interface HarnessContext {
   onStream?: (chunk: string) => void;
   onToolResult?: (call: { name: string }) => void;
   confirm?: (message: string) => Promise<boolean>;
+}
+
+const DEFAULT_LLM_TIMEOUT_MS = 120_000;
+const DEFAULT_TOOL_TIMEOUT_MS = 60_000;
+const DEFAULT_LLM_RETRY_MAX = 2;
+const DEFAULT_TOOL_RETRY_MAX = 1;
+const RETRY_BASE_DELAY_MS = 1_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  if (ms <= 0) return promise;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${label}`)), ms),
+    ),
+  ]);
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries: number;
+    label: string;
+    skipRetry?: () => boolean;
+    retryable?: (err: Error) => boolean;
+  },
+): Promise<T> {
+  let lastError: Error | undefined;
+  const canRetry = options.retryable ?? (() => true);
+  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < options.maxRetries && !options.skipRetry?.() && canRetry(lastError)) {
+        const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        break;
+      }
+    }
+  }
+  throw lastError;
+}
+
+function parseContent(c: unknown): string | undefined {
+  if (typeof c === 'string') return c;
+  if (Array.isArray(c)) {
+    return c
+      .filter((b: unknown) => {
+        if (typeof b === 'object' && b !== null && 'type' in b) {
+          return (b as Record<string, unknown>).type === 'text';
+        }
+        return false;
+      })
+      .map((b: unknown) => String((b as Record<string, unknown>).text ?? ''))
+      .join('');
+  }
+  if (c === undefined || c === null) return undefined;
+  return String(c);
+}
+
+function stringifyResult(r: unknown): string {
+  if (typeof r === 'string') return r;
+  try {
+    return JSON.stringify(r);
+  } catch {
+    return String(r);
+  }
 }
 
 export class Harness {
@@ -126,11 +199,29 @@ export class Harness {
       const tools = this.toolRegistry.getAll();
       const messages = history.getAll();
 
-      const response = await this.config.llm(messages, tools, {
-        onStream: onStream,
-      });
+      let streamingStarted = false;
+      const response = await withRetry(
+        () => {
+          streamingStarted = false;
+          return withTimeout(
+            this.config.llm(messages, tools, {
+              onStream: (chunk) => {
+                streamingStarted = true;
+                onStream?.(chunk);
+              },
+            }),
+            this.config.llmTimeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
+            'llm call',
+          );
+        },
+        {
+          maxRetries: this.config.llmRetryMax ?? DEFAULT_LLM_RETRY_MAX,
+          label: 'llm',
+          skipRetry: () => streamingStarted,
+        },
+      );
 
-      const content = typeof response.content === 'string' ? response.content : undefined;
+      const content = parseContent(response.content);
       const rawCalls = response.tool_calls;
       const toolCalls = Array.isArray(rawCalls) ? rawCalls : undefined;
 
@@ -163,16 +254,25 @@ export class Harness {
         }
 
         try {
-          const result = await this.toolRegistry.execute(tc.name, tc.arguments, {
-            messages: history.getAll(),
-            harness: this,
-            userId,
-            channelId,
-          });
-          history.addToolResult(
-            tc.id,
-            typeof result === 'string' ? result : JSON.stringify(result),
+          const result = await withRetry(
+            () =>
+              withTimeout(
+                this.toolRegistry.execute(tc.name, tc.arguments, {
+                  messages: history.getAll(),
+                  harness: this,
+                  userId,
+                  channelId,
+                }),
+                this.config.toolTimeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS,
+                `tool:${tc.name}`,
+              ),
+            {
+              maxRetries: this.config.toolRetryMax ?? DEFAULT_TOOL_RETRY_MAX,
+              label: `tool:${tc.name}`,
+              retryable: (err) => !(err instanceof ToolSchemaValidationError),
+            },
           );
+          history.addToolResult(tc.id, stringifyResult(result));
           onToolResult?.({ name: tc.name });
         } catch (err) {
           if (err instanceof ToolSchemaValidationError) {
