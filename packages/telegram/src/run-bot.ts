@@ -57,7 +57,30 @@ export interface TelegramBotInstance {
 
 export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstance {
   const { botToken, harness, override } = config;
-  const bot = new Bot(botToken);
+
+  const sanitizingFetch: typeof globalThis.fetch = async (url, opts) => {
+    try {
+      return await fetch(url, opts);
+    } catch (err) {
+      if (err instanceof Error) {
+        err.message = err.message.replaceAll(botToken, '***');
+        if ('error' in err && err.error instanceof Error) {
+          err.error.message = err.error.message.replaceAll(botToken, '***');
+        }
+      }
+      throw err;
+    }
+  };
+
+  const bot = new Bot(botToken, {
+    client: {
+      fetch: sanitizingFetch as any,
+    },
+  });
+
+  bot.catch((err) => {
+    console.error('Bot middleware error:', err.message);
+  });
 
   const pendingConfirmations = new Map<
     string,
@@ -278,10 +301,16 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
 
   let runnerHandle: ReturnType<typeof run> | undefined;
 
-  return {
+  const instance: TelegramBotInstance = {
     async start() {
       if (runnerHandle) return;
-      runnerHandle = run(bot);
+      const handle = run(bot, { runner: { silent: true } });
+      runnerHandle = handle;
+      handle.task()?.catch(async () => {
+        runnerHandle = undefined;
+        await new Promise((r) => setTimeout(r, 5000));
+        instance.start();
+      });
     },
     async stop() {
       if (!runnerHandle) return;
@@ -289,4 +318,6 @@ export function createTelegramBot(config: TelegramBotConfig): TelegramBotInstanc
       runnerHandle = undefined;
     },
   };
+
+  return instance;
 }
